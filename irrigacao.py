@@ -1,50 +1,11 @@
 import pygame
 import time
 
-def obter_inteiro(mensagem):
-    while True:
-        try:
-            return int(input(mensagem))
-        except ValueError:
-            print("Entrada inválida! Digite um número inteiro.")
-
-def obter_direcao(mensagem):
-    while True:
-        direcao = input(mensagem).upper()
-        if direcao in ['N', 'S', 'L', 'O']:
-            return direcao
-        print("Entrada inválida! Digite N, S, L ou O.")
-
-# Solicitação de entrada do usuário
-tamanho_x = obter_inteiro("Digite o tamanho da horta em X: ")
-tamanho_y = obter_inteiro("Digite o tamanho da horta em Y: ")
-posicao_x = obter_inteiro("Digite a posição inicial X do robô: ")
-posicao_y = obter_inteiro("Digite a posição inicial Y do robô: ")
-direcao = obter_direcao("Digite a direção inicial do robô (N, S, L, O): ")
-
-# Solicitação dos canteiros a serem irrigados
-canteiros = []
-n_canteiros = obter_inteiro("Quantos canteiros deseja irrigar? ")
-for _ in range(n_canteiros):
-    while True:
-        try:
-            cx, cy = map(int, input("Digite a posição X e Y do canteiro separados por espaço: ").split())
-            if 0 <= cx < tamanho_x and 0 <= cy < tamanho_y:
-                canteiros.append((cx, cy))
-                break
-            else:
-                print("Canteiro fora dos limites! Digite valores dentro da horta.")
-        except ValueError:
-            print("Entrada inválida! Digite dois números inteiros separados por espaço.")
-
-direcoes = ['N', 'L', 'S', 'O']
-dir_index = direcoes.index(direcao)
-
 # Inicializar pygame
 pygame.init()
 
 # Configurações da tela
-tela_largura, tela_altura = 500, 500
+tela_largura, tela_altura = 600, 600
 tela = pygame.display.set_mode((tela_largura, tela_altura))
 pygame.display.set_caption("Controle do Robô Irrigador")
 
@@ -55,14 +16,78 @@ VERDE = (0, 255, 0)  # Canteiros irrigados
 VERMELHO = (255, 0, 0)  # Robô
 AZUL = (0, 0, 255)  # Canteiros a serem irrigados
 
-# Tamanho da célula
-tam_celula = min(tela_largura // tamanho_x, tela_altura // tamanho_y)
+# Fonte
+fonte = pygame.font.Font(None, 30)
 
-# Posição do robô
-robot_x, robot_y = posicao_x, posicao_y
-canteiros_irrigados = set()
+# Armazena os comandos executados
+comandos_executados = ""
+
+def capturar_input(pergunta, tipo=int, validacao=None):
+    input_text = ""
+    rodando = True
+    direcoes = ['N', 'L', 'S', 'O']
+    while rodando:
+        tela.fill(BRANCO)
+        instrucao = fonte.render(pergunta, True, PRETO)
+        tela.blit(instrucao, (20, 20))
+        pygame.draw.rect(tela, PRETO, (20, 60, 500, 40), 2)
+        texto_surface = fonte.render(input_text, True, PRETO)
+        tela.blit(texto_surface, (30, 70))
+        pygame.display.flip()
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    try:
+                        valor = tipo(input_text)
+                        if validacao and not validacao(valor):
+                            input_text = ""
+                        else:
+                            return valor
+                    except ValueError:
+                        input_text = ""
+                elif event.key == pygame.K_BACKSPACE:
+                    input_text = input_text[:-1]
+                else:
+                    input_text += event.unicode
+
+def iniciar_nova_irrigacao():
+    global tamanho_x, tamanho_y, posicao_x, posicao_y, direcao, canteiros, canteiros_irrigados, dir_index, comandos_executados, robot_x, robot_y, tam_celula
+    
+    tamanho_x = capturar_input("Digite o tamanho da horta em X:", int, lambda v: v > 0)
+    tamanho_y = capturar_input("Digite o tamanho da horta em Y:", int, lambda v: v > 0)
+    posicao_x = capturar_input("Digite a posição inicial X do robô:", int, lambda v: 0 <= v < tamanho_x)
+    posicao_y = capturar_input("Digite a posição inicial Y do robô:", int, lambda v: 0 <= v < tamanho_y)
+    direcao = capturar_input("Digite a direção inicial do robô (N, S, L, O):", str, lambda v: v.upper() in ['N', 'S', 'L', 'O']).upper()
+    
+    canteiros = []
+    n_canteiros = capturar_input("Quantos canteiros deseja irrigar?", int, lambda v: v > 0)
+    for _ in range(n_canteiros):
+        while True:
+            cx = capturar_input("Digite a posição X do canteiro:", int, lambda v: 0 <= v < tamanho_x)
+            cy = capturar_input("Digite a posição Y do canteiro:", int, lambda v: 0 <= v < tamanho_y)
+            if (cx, cy) not in canteiros:
+                canteiros.append((cx, cy))
+                break
+    
+    # Validação da entrada
+    direcoes = ['N', 'L', 'S', 'O']
+    dir_index = direcoes.index(direcao)
+    
+    # Redefinir variáveis para nova irrigação
+    canteiros_irrigados = set()
+    comandos_executados = ""
+    robot_x, robot_y = posicao_x, posicao_y
+    tam_celula = min(tela_largura // tamanho_x, tela_altura // tamanho_y)
+
+# Iniciar a primeira irrigação
+iniciar_nova_irrigacao()
 
 # Loop principal
+direcoes = ['N', 'L', 'S', 'O']
 rodando = True
 while rodando:
     tela.fill(BRANCO)
@@ -74,19 +99,31 @@ while rodando:
             pygame.draw.rect(tela, cor, (x * tam_celula, y * tam_celula, tam_celula, tam_celula), 0)
             pygame.draw.rect(tela, PRETO, (x * tam_celula, y * tam_celula, tam_celula, tam_celula), 1)
     
-    # Desenha o robô e indica sua direção (seta para onde aponta)
-    centro_x = robot_x * tam_celula + tam_celula // 2
-    centro_y = robot_y * tam_celula + tam_celula // 2
+    # Desenha o robô como um triângulo para indicar a direção
     if direcoes[dir_index] == 'N':
-        pontos = [(centro_x, centro_y - tam_celula // 2), (centro_x - tam_celula // 2, centro_y + tam_celula // 2), (centro_x + tam_celula // 2, centro_y + tam_celula // 2)]
+      pontos = [(robot_x * tam_celula + tam_celula // 2, robot_y * tam_celula), 
+            (robot_x * tam_celula, robot_y * tam_celula + tam_celula), 
+            (robot_x * tam_celula + tam_celula, robot_y * tam_celula + tam_celula)]
     elif direcoes[dir_index] == 'S':
-        pontos = [(centro_x, centro_y + tam_celula // 2), (centro_x - tam_celula // 2, centro_y - tam_celula // 2), (centro_x + tam_celula // 2, centro_y - tam_celula // 2)]
+      pontos = [(robot_x * tam_celula, robot_y * tam_celula), 
+            (robot_x * tam_celula + tam_celula, robot_y * tam_celula), 
+            (robot_x * tam_celula + tam_celula // 2, robot_y * tam_celula + tam_celula)]
     elif direcoes[dir_index] == 'L':
-        pontos = [(centro_x + tam_celula // 2, centro_y), (centro_x - tam_celula // 2, centro_y - tam_celula // 2), (centro_x - tam_celula // 2, centro_y + tam_celula // 2)]
-    else:  # Oeste (O)
-        pontos = [(centro_x - tam_celula // 2, centro_y), (centro_x + tam_celula // 2, centro_y - tam_celula // 2), (centro_x + tam_celula // 2, centro_y + tam_celula // 2)]
+      pontos = [(robot_x * tam_celula, robot_y * tam_celula), 
+            (robot_x * tam_celula, robot_y * tam_celula + tam_celula), 
+            (robot_x * tam_celula + tam_celula, robot_y * tam_celula + tam_celula // 2)]
+    elif direcoes[dir_index] == 'O':
+      pontos = [(robot_x * tam_celula + tam_celula, robot_y * tam_celula), 
+            (robot_x * tam_celula + tam_celula, robot_y * tam_celula + tam_celula), 
+            (robot_x * tam_celula, robot_y * tam_celula + tam_celula // 2)]
     
     pygame.draw.polygon(tela, VERMELHO, pontos)
+    
+    # Exibe a lista de canteiros irrigados e comandos
+    status_texto = fonte.render(f"Irrigados: {len(canteiros_irrigados)}/{len(canteiros)}", True, PRETO)
+    comandos_texto = fonte.render(f"Comandos: {comandos_executados}", True, PRETO)
+    tela.blit(status_texto, (20, tela_altura - 40))
+    tela.blit(comandos_texto, (20, tela_altura - 60))
     
     pygame.display.flip()
     
@@ -97,8 +134,10 @@ while rodando:
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RIGHT:
                 dir_index = (dir_index + 1) % 4  # Direita
+                comandos_executados += "D"
             elif event.key == pygame.K_LEFT:
                 dir_index = (dir_index - 1) % 4  # Esquerda
+                comandos_executados += "E"
             elif event.key == pygame.K_UP:
                 if direcoes[dir_index] == 'N' and robot_y > 0:
                     robot_y -= 1
@@ -108,9 +147,18 @@ while rodando:
                     robot_x += 1
                 elif direcoes[dir_index] == 'O' and robot_x > 0:
                     robot_x -= 1
+                comandos_executados += "M"
             elif event.key == pygame.K_SPACE:
                 if (robot_x, robot_y) in canteiros:
                     canteiros_irrigados.add((robot_x, robot_y))  # Irrigar canteiro
+                    comandos_executados += "I"
+                    if set(canteiros) == canteiros_irrigados:
+                        pygame.time.delay(500)
+                        resposta = capturar_input("Todos os canteiros foram irrigados! Deseja fazer uma nova irrigação? (S/N)", str, lambda v: v.upper() in ['S', 'N']).strip().upper()
+                        if resposta == 'S':
+                            iniciar_nova_irrigacao()
+                        else:
+                            rodando = False
     
     time.sleep(0.1)
 
