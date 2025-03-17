@@ -69,8 +69,8 @@ def iniciar_nova_irrigacao():
     n_canteiros = capturar_input("Quantos canteiros deseja irrigar?", int, lambda v: v > 0)
     for _ in range(n_canteiros):
         while True:
-            cx = capturar_input("Digite a posição X do canteiro:", int, lambda v: 0 <= v < tamanho_x)
-            cy = capturar_input("Digite a posição Y do canteiro:", int, lambda v: 0 <= v < tamanho_y)
+            cx = capturar_input(f"Digite a posição X do canteiro {_ + 1}:", int, lambda v: 0 <= v < tamanho_x)
+            cy = capturar_input(f"Digite a posição Y do canteiro {_ + 1}:", int, lambda v: 0 <= v < tamanho_y)
             if (cx, cy) not in canteiros:
                 canteiros.append((cx, cy))
                 break
