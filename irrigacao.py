@@ -163,10 +163,18 @@ while rodando:
             pygame.draw.rect(tela, cor, (x * tam_celula, y * tam_celula, tam_celula, tam_celula), 0)
             pygame.draw.rect(tela, PRETO, (x * tam_celula, y * tam_celula, tam_celula, tam_celula), 1)
     
-    # Desenha o caminho percorrido
+   # Desenha o caminho percorrido
     for (px, py) in caminho_percorrido:
+        # Desenha o contorno do bloco
         pygame.draw.rect(tela, CINZA, (px * tam_celula, py * tam_celula, tam_celula, tam_celula), 1)
-    
+        
+        # Desenha uma linha no meio do bloco
+        if len(caminho_percorrido) > 1:
+            centro_x = (px * tam_celula) + tam_celula // 2
+            centro_y = (py * tam_celula) + tam_celula // 2
+            pygame.draw.line(tela, CINZA, (centro_x - tam_celula // 4, centro_y), (centro_x + tam_celula // 4, centro_y), 1)
+            pygame.draw.line(tela, CINZA, (centro_x, centro_y - tam_celula // 4), (centro_x, centro_y + tam_celula // 4), 1)
+
     # Desenha o robô como um triângulo para indicar a direção
     if direcoes[dir_index] == 'N':
         pontos = [(robot_x * tam_celula + tam_celula // 2, robot_y * tam_celula), 
